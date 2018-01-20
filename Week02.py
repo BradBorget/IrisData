@@ -1,6 +1,6 @@
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
 
 
@@ -49,10 +49,10 @@ class KNNModel:
             if len(classes)==1:
                 closest.append(int(classes[0]))
             else:
-                countnumclasses = np.zeros(max(classes)+1)
+                countfreqclasses = np.zeros(max(classes)+1)
                 for j in range(k):
-                    countnumclasses[self.target[index[:j]]] += 1
-                closest.append(np.argmax(countnumclasses))
+                    countfreqclasses[self.target[index[:j]]] += 1
+                closest.append(np.argmax(countfreqclasses))
         return closest
 
 
@@ -64,12 +64,23 @@ def main():
     model = clf.fit(train_data, train_target)
     targetspredicted = model.predict(4, test_data)
     i = 0
+    classifier = KNeighborsClassifier(n_neighbors=4)
+    model = classifier.fit(train_data, train_target)
+    predictions = model.predict(test_data)
     for test in zip(targetspredicted, test_target):
         k, j = test
         if k == j:
             i += 1
     i = (100 * i) / test_target.shape[0]
-    print(str(i) + "% accuracy")
+    print(str(i) + "% accuracy (mine)")
+    i = 0
+    for test in zip(predictions, test_target):
+        k, j = test
+        if k == j:
+            i += 1
+    i = (100*i)/test_target.shape[0]
+    print(str(i) + "% accuracy (theirs)")
+
 
 
 if __name__ == "__main__":

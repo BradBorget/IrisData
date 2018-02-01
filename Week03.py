@@ -129,7 +129,7 @@ def main():
         i = 0
         for test in zip(predictions, test_target):
             k, j = test
-           if k == j:
+            if k == j:
                 i += 1
         i = (100 * i) / num
         print(str(i) + "% accuracy (theirs)")

@@ -51,7 +51,7 @@ class KNNModel:
             else:
                 countfreqclasses = np.zeros(max(classes)+1)
                 for j in range(k):
-                    countfreqclasses[self.target[index[:j]]] += 1
+                    countfreqclasses[self.target[index[j]]] += 1
                 closest.append(np.argmax(countfreqclasses))
         return closest
 

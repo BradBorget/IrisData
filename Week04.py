@@ -48,6 +48,7 @@ def make_tree(data, target, FeaturesLeft):
         for t in target:
             nums[t-1] += 1
         return np.argmax(nums)
+    return tree
 
 
 class IC3Classifier:
@@ -55,14 +56,13 @@ class IC3Classifier:
         pass
 
     def fit(self, data, target):
-        tree = data, target
         Tclasses = np.unique(target)
         FClasses = np.zeros(data.shape[1], dtype=object)
         for i in range(0, data.shape[1]):
             FClasses[i] = np.unique(data[:,i])
         S = calc_STotal(Tclasses, target)
         SFreq = calc_SFreq(S, FClasses, Tclasses, data, target)
-
+        tree = make_tree(data, target, SFreq)
         return IC3Model(tree)
 
 

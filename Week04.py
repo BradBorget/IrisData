@@ -67,21 +67,24 @@ def calc_SFreq(S, FClasses, TClasses, data, target):
 
 def make_tree(data, target, FeaturesLeft, SFreq, datam, index, indices=[]):
     targetclass = np.unique(target)
-    default = target[np.argmax(target)]
     if targetclass.shape[0] == 1:
         return Node(datam, index, targetclass[0])
     elif FeaturesLeft.size == 0 or data == []:
+        default = target[np.argmax(target)][0][0][0]
         return Node(datam, index, default)
     else:
-        index = np.argmax(SFreq)
         if indices == []:
+            index = np.argmax(SFreq)
             for i in range(FeaturesLeft.shape[0]):
                 if i != index:
                     indices.append(i)
             tree = Node(datam, index, None)
+            index2 = index
         else:
-            tree = Node(datam, indices[index], None)
-            indices.pop(index)
+            tree = Node(datam, index, None)
+            index = np.argmax(SFreq)
+            index2 = indices.pop(index)
+
         col = FeaturesLeft[index]
         FeaturesLeft = np.delete(FeaturesLeft, index, 0)
         for datam in col:
@@ -94,9 +97,9 @@ def make_tree(data, target, FeaturesLeft, SFreq, datam, index, indices=[]):
             S = calc_STotal(np.unique(target[ixgrid[0]]), target[ixgrid[0]])
             SFreq = calc_SFreq(S, FClasses, targetclass, data[ixgrid], target[ixgrid[0]])
             if indices == []:
-                tree.branches.append(make_tree([], target[ixgrid[0]], FeaturesLeft, SFreq, datam, index, indices))
+                tree.branches.append(make_tree([], target[ixgrid[0]], FeaturesLeft, SFreq, datam, index2, indices))
             else:
-                tree.branches.append(make_tree(data[ixgrid], target[ixgrid[0]], FeaturesLeft, SFreq, datam, index, indices))
+                tree.branches.append(make_tree(data[ixgrid], target[ixgrid[0]], FeaturesLeft, SFreq, datam, index2, indices))
         return tree
 
 

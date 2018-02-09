@@ -4,6 +4,31 @@ import numpy as np
 import pandas
 
 
+class Node:
+    def __init__(self, val, col, tar):
+        self.branches = []
+        self.v = val
+        self.col = col
+        self.tar = tar
+
+    def print(self, tree=None, numTabs=0):
+        if tree == None:
+            tree = self
+        print("Value is: {} Column is: {} Target is: {}".format(tree.v, tree.col, tree.tar))
+        if len(tree.branches) > 0:
+            for tab in range(numTabs):
+                print("\t", end="")
+            numTabs += 1;
+            print("[")
+            for branch in tree.branches:
+                for tab in range(numTabs):
+                    print("\t", end="")
+                self.print(branch, numTabs)
+            for tab in range(1, numTabs):
+                print("\t", end="")
+            print("]")
+
+
 def calc_entropy(column):
     if column != 0:
         return -column * np.log2(column)
@@ -23,32 +48,64 @@ def calc_STotal(classes, target):
 
 def calc_SFreq(S, FClasses, TClasses, data, target):
     Gain = np.zeros(data.shape[1])
-    for i in range(0,data.shape[1]):
-        nums = np.zeros((FClasses[i].shape[0], TClasses.shape[0]))
-        Freq = np.zeros(FClasses[i].shape[0])
-        for index in range(0,data.shape[0]):
-            nums[data[index][i] - 1][target[index] - 1] += 1
+    for i in range(data.shape[1]):
+        nums = np.zeros((max(FClasses[i]), max(TClasses)))
+        Freq = np.zeros(max(FClasses[i]))
+        for index in range(data.shape[0]):
+            nums_copy = nums[data[index][i] - 1]
+            nums_copy[target[index] - 1] += 1
             Freq[data[index][i] - 1] += 1
         Gain[i] = S
         num = 0
-        for index in range(0,nums.shape[0]):
-            for nindex in range(0,nums.shape[1]):
+        for index in range(nums.shape[0]):
+            for nindex in range(nums.shape[1]):
                 num += calc_entropy(nums[index][nindex]/Freq[index])
             Gain[i] -= (Freq[index]/data.shape[0]) * num
             num = 0
     return Gain
 
 
-def make_tree(data, target, FeaturesLeft):
+def make_tree(data, target, FeaturesLeft, SFreq, datam, index, indices=[]):
     targetclass = np.unique(target)
+    default = target[np.argmax(target)]
     if targetclass.shape[0] == 1:
-        return targetclass[0]
-    elif FeaturesLeft.size == 0:
-        nums = np.zeros(max(target))
-        for t in target:
-            nums[t-1] += 1
-        return np.argmax(nums)
-    return tree
+        return Node(datam, index, targetclass[0])
+    elif FeaturesLeft.size == 0 or data == []:
+        return Node(datam, index, default)
+    else:
+        index = np.argmax(SFreq)
+        if indices == []:
+            for i in range(FeaturesLeft.shape[0]):
+                if i != index:
+                    indices.append(i)
+            tree = Node(datam, index, None)
+        else:
+            tree = Node(datam, indices[index], None)
+            indices.pop(index)
+        col = FeaturesLeft[index]
+        FeaturesLeft = np.delete(FeaturesLeft, index, 0)
+        for datam in col:
+            ixgrid = np.ix_(data[:, index] == datam, indices)
+            FClasses = np.zeros(FeaturesLeft.shape[0], dtype=object)
+            j = 0
+            for i in ixgrid[1][0]:
+                FClasses[j] = np.unique(data[:, i])
+                j += 1
+            S = calc_STotal(np.unique(target[ixgrid[0]]), target[ixgrid[0]])
+            SFreq = calc_SFreq(S, FClasses, targetclass, data[ixgrid], target[ixgrid[0]])
+            if indices == []:
+                tree.branches.append(make_tree([], target[ixgrid[0]], FeaturesLeft, SFreq, datam, index, indices))
+            else:
+                tree.branches.append(make_tree(data[ixgrid], target[ixgrid[0]], FeaturesLeft, SFreq, datam, index, indices))
+        return tree
+
+
+def predictRecurse(data, tree):
+    for item in tree.branches:
+        if data[item.col] == item.v and len(item.branches) == 0:
+            return item.tar
+        elif data[item.col] == item.v:
+            return predictRecurse(data, item)
 
 
 class IC3Classifier:
@@ -62,7 +119,8 @@ class IC3Classifier:
             FClasses[i] = np.unique(data[:,i])
         S = calc_STotal(Tclasses, target)
         SFreq = calc_SFreq(S, FClasses, Tclasses, data, target)
-        tree = make_tree(data, target, SFreq)
+        tree = make_tree(data, target, FClasses, SFreq, 0, 0)
+        tree.print()
         return IC3Model(tree)
 
 
@@ -72,15 +130,26 @@ class IC3Model:
 
 
     def predict(self, data):
-        pass
+        targets = []
+        for datam in data:
+            print(datam)
+            targets.append(predictRecurse(datam, self.tree))
+        return targets
 
 
 def main():
     rownums, rows, targets = np.split(pandas.read_csv("C:\\Users\\Brad Borget\\Documents\\lenses.data",
                                                       delim_whitespace=True, header=None).as_matrix(), [1, 5], axis=1)
-    train_data, test_data, train_target, test_target = train_test_split(rows, targets)
     clf = IC3Classifier()
-    clf.fit(train_data, train_target)
+    model = clf.fit(rows, targets)
+    train_data, test_data, train_target, test_target = train_test_split(rows, targets)
+    targets = model.predict(test_data)
+    j = 0
+    for i in range(len(targets)):
+        if test_target[i] == targets[i]:
+            j += 1
+    percentage = (j * 100)/len(targets)
+    print("Ours: {}%".format(percentage))
 
 
 

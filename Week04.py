@@ -84,7 +84,6 @@ def make_tree(data, target, FeaturesLeft, SFreq, datam, index, indices=[]):
             tree = Node(datam, index, None)
             index = np.argmax(SFreq)
             index2 = indices.pop(index)
-
         col = FeaturesLeft[index]
         FeaturesLeft = np.delete(FeaturesLeft, index, 0)
         for datam in col:
@@ -159,7 +158,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
